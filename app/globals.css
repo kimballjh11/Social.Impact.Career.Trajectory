@@ -1,26 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --terracotta: #C4763A;
+  --terracotta-light: #D4976A;
+  --steel-blue: #335C67;
+  --warm-black: #1A1A1A;
+  --charcoal: #2D2D2D;
+  --medium-gray: #5A5A5A;
+  --light-gray: #9A9A9A;
+  --warm-white: #F5F0EB;
+  --off-white: #FAF8F5;
+  --rule-gray: #D4D4D4;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background-color: var(--warm-white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--charcoal);
+  background-color: var(--warm-white);
 }
+
+h1, h2, h3 {
+  font-family: 'Instrument Serif', Georgia, serif;
+  color: var(--warm-black);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.label {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--steel-blue);
+  font-weight: 600;
+}
+
+.rule {
+  border: none;
+  border-top: 1px solid var(--rule-gray);
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--warm-white); }
+::-webkit-scrollbar-thumb { background: var(--rule-gray); border-radius: 3px; }
