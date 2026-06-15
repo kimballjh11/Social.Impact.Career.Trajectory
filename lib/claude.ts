@@ -5,6 +5,18 @@ const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
+// Hard ceiling on web_search calls per generation. Each search costs a tool
+// round trip (the model re-reads the full context and decides what to do next),
+// so this is the single biggest knob on wall-clock time. Keep it small and lean
+// on the prompt to make those few searches count (sector-wide queries, not one
+// per name).
+const WEB_SEARCH_MAX_USES = 3
+
+// Cap on pause_turn resumes. With max_uses set, the model should naturally stop
+// searching once the cap is hit — this is a defense in depth so a runaway
+// pause_turn loop can't keep the request alive indefinitely.
+const PAUSE_TURN_MAX_RESUMES = 2
+
 // Handles the server-side search loop. The web_search tool runs on Anthropic's
 // infrastructure; when it hits its iteration limit mid-run the API returns
 // pause_turn instead of end_turn. Re-send the original user message plus the
@@ -16,16 +28,23 @@ async function callWithSearch(
 ): Promise<Anthropic.Message> {
   let messages: Anthropic.MessageParam[] = [{ role: "user", content: userPrompt }]
 
-  for (;;) {
+  for (let resumes = 0; ; resumes++) {
     const message = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: maxTokens,
       system,
       messages,
-      tools: [{ type: "web_search_20260209", name: "web_search" }],
+      tools: [
+        {
+          type: "web_search_20260209",
+          name: "web_search",
+          max_uses: WEB_SEARCH_MAX_USES,
+        },
+      ],
     })
 
     if (message.stop_reason !== "pause_turn") return message
+    if (resumes >= PAUSE_TURN_MAX_RESUMES) return message
 
     messages = [
       { role: "user", content: userPrompt },

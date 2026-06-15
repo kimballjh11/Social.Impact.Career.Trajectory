@@ -96,12 +96,12 @@ Do not include any text outside the JSON object. Do not use markdown code fences
   ]
 }
 
-Before you write the practitioners and organizations sections, use the web_search tool to look up current leaders and active organizations in this person's exact sector. Search for their names to confirm they are real, still active, and working in this space. Training data goes stale — verify before you write.
+Web search budget: you have at most 3 web_search calls for this entire response. Use them efficiently — broad, consolidated queries that surface multiple practitioners and organizations at once (for example: one search for the sector's current leaders, one for the most active organizations in this cause area). Do not search one name at a time. Skip searches entirely if you are already confident the people and organizations you would list are real and still active. Anyone or anything you cannot confirm with the searches you have, leave out.
 
 Requirements:
 - ALL THREE plan_306090 sections are required for every person, no matter how early in their career they are. For someone with little or no experience, days 31-60 and 61-90 shift toward exploration, conversations, volunteering, and first reps — they never disappear. Never return fewer than three sections.
-- practitioners: 3-5 entries of real practitioners or thought leaders in their specific sector. Every name must be verified via web search before inclusion.
-- organizations: 5-7 entries of real organizations working in their sector. Every organization must be verified via web search before inclusion.
+- practitioners: 3-5 entries of real practitioners or thought leaders in their specific sector. Only include names you are confident are real and currently active.
+- organizations: 5-7 entries of real organizations working in their sector. Only include organizations you are confident exist and are currently active.
 - resources: 3-5 entries that are genuinely useful for someone at their stage in their sector.`
 }
 
