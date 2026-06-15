@@ -1,16 +1,22 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import OutputSection from "@/components/output/OutputSection"
+import PlanAccordion from "@/components/output/PlanAccordion"
+import FeedbackBlock from "@/components/output/FeedbackBlock"
 import DownloadButton from "@/components/output/DownloadButton"
+import { Plan306090 } from "@/lib/claude"
 
 type TrajectoryData = {
+  id: string
   name: string
   sector: string
+  subSector: string
   output: {
     power_statement: string
-    plan_306090: string
+    plan_306090: Plan306090
     practitioners: string
     organizations: string
     resources: string
@@ -32,12 +38,21 @@ export default function OutputPage() {
 
   if (!data) return null
 
+  // "Other" stores the person's own words in subSector — show those, not "Other"
+  const displaySector = data.sector === "Other" && data.subSector?.trim() ? data.subSector : data.sector
+
   return (
     <div className="min-h-screen" style={{ background: "var(--warm-white)" }}>
       <nav className="border-b border-[var(--rule-gray)]">
-        <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
-          <span className="label" style={{ color: "var(--steel-blue)" }}>DAYBREAK COLLABORATIVE</span>
-          <span className="label" style={{ color: "var(--light-gray)" }}>DAYBREAKERS</span>
+        <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-end">
+          <Image
+            src="/daybreak-logo.png"
+            alt="Daybreak Collaborative"
+            width={2659}
+            height={984}
+            priority
+            className="h-10 w-auto"
+          />
         </div>
       </nav>
 
@@ -48,7 +63,7 @@ export default function OutputPage() {
           <h1 className="text-4xl mb-2" style={{ fontFamily: "'Instrument Serif', Georgia, serif", color: "var(--warm-black)" }}>
             {data.name}.
           </h1>
-          <p className="text-base" style={{ color: "var(--medium-gray)" }}>{data.sector}</p>
+          <p className="text-base" style={{ color: "var(--medium-gray)" }}>{displaySector}</p>
         </div>
       </div>
 
@@ -61,7 +76,7 @@ export default function OutputPage() {
             If you refresh or close this page, everything here will be gone.
           </p>
           <div className="ml-auto flex-shrink-0">
-            <DownloadButton name={data.name} sector={data.sector} output={data.output} />
+            <DownloadButton name={data.name} sector={displaySector} output={data.output} />
           </div>
         </div>
       </div>
@@ -73,10 +88,7 @@ export default function OutputPage() {
           content={data.output.power_statement}
           isPower
         />
-        <OutputSection
-          label="30-60-90 Day Plan"
-          content={data.output.plan_306090}
-        />
+        <PlanAccordion plan={data.output.plan_306090} />
         <OutputSection
           label="Practitioners to Follow"
           content={data.output.practitioners}
@@ -99,7 +111,7 @@ export default function OutputPage() {
               Check your email — a copy of this trajectory was sent to you.
               Walker will also be in touch in the next day or two.
             </p>
-            <DownloadButton name={data.name} sector={data.sector} output={data.output} />
+            <DownloadButton name={data.name} sector={displaySector} output={data.output} />
           </div>
 
           <hr className="rule" />
@@ -108,10 +120,11 @@ export default function OutputPage() {
             <div className="label" style={{ color: "var(--steel-blue)" }}>Want to go deeper?</div>
             <p className="text-base max-w-lg" style={{ color: "var(--charcoal)" }}>
               Daybreakers works directly with students and early-career professionals in social impact.
-              If you want to build your path with someone who has been in the sector, that is exactly what we do.
+              If you want to build your path with professionals in the sector, that is exactly what we do.
+              Coaching, cohorts and real client experience.
             </p>
             <a
-              href="https://daybreakcollaborative.com"
+              href="https://www.daybreak-collaborative.com/daybreakers"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm font-medium tracking-wide"
@@ -120,6 +133,10 @@ export default function OutputPage() {
               Learn about Daybreakers &rarr;
             </a>
           </div>
+
+          <hr className="rule" />
+
+          <FeedbackBlock submissionId={data.id} />
         </div>
       </div>
 
@@ -127,7 +144,7 @@ export default function OutputPage() {
         <div className="max-w-5xl mx-auto px-6 py-6 flex items-center justify-between">
           <span className="label" style={{ color: "var(--light-gray)" }}>DAYBREAK COLLABORATIVE</span>
           <span className="text-sm italic" style={{ color: "var(--light-gray)" }}>
-            The bridge won&apos;t build itself.
+            For the changemakers who aren&apos;t waiting.
           </span>
         </div>
       </footer>

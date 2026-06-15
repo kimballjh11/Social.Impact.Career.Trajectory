@@ -1,11 +1,22 @@
-import { createClient } from "@supabase/supabase-js"
+import { createClient, SupabaseClient } from "@supabase/supabase-js"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+// Lazy initialization so importing this module never crashes a build or a
+// route when env vars are missing (local dev without Supabase configured).
+// The client is only created the first time it is actually used.
 
-// Client-side instance (limited permissions via anon key)
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+let _admin: SupabaseClient | null = null
 
 // Server-side instance (full permissions via service role key — never expose to client)
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+export function getSupabaseAdmin(): SupabaseClient {
+  if (_admin) return _admin
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!url || !serviceKey) {
+    throw new Error("Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.")
+  }
+
+  _admin = createClient(url, serviceKey)
+  return _admin
+}

@@ -56,6 +56,8 @@ export default function StepOne({ data, onChange, errors }: StepOneProps) {
 
       <Input
         label="Phone Number"
+        optional
+        hint="Share if you'd like Walker to be able to reach you directly."
         type="tel"
         placeholder="(555) 000-0000"
         value={data.phone}

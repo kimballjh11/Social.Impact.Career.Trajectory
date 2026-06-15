@@ -1,8 +1,15 @@
 import { Resend } from "resend"
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-const appUrl = process.env.NEXT_PUBLIC_APP_URL
-const walkerEmail = process.env.WALKER_EMAIL!
+// Lazy initialization so importing this module never crashes a build or a
+// route when env vars are missing (local dev without Resend configured).
+let _resend: Resend | null = null
+function getResend(): Resend {
+  if (_resend) return _resend
+  const key = process.env.RESEND_API_KEY
+  if (!key) throw new Error("Email is not configured. Set RESEND_API_KEY.")
+  _resend = new Resend(key)
+  return _resend
+}
 
 // ─── Email sent to user immediately after generation ─────────────────────────
 export async function sendUserConfirmation(params: {
@@ -17,7 +24,7 @@ export async function sendUserConfirmation(params: {
     resources: string
   }
 }) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: "Daybreakers <hello@daybreakcollaborative.com>",
     to: params.to,
     subject: "Your Daybreakers Career Trajectory",
@@ -31,6 +38,8 @@ export async function sendWalkerNotification(params: {
   name: string
   email: string
   sector: string
+  inlineAnswers?: { story?: string; comeToYouFor?: string; lostTrackOfTime?: string }
+  hasFullQuestionnaire?: boolean
   output: {
     power_statement: string
     plan_306090: string
@@ -39,11 +48,11 @@ export async function sendWalkerNotification(params: {
     resources: string
   }
 }) {
-  const approveUrl = `${appUrl}/api/email/approve?id=${params.submissionId}`
+  const approveUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/email/approve?id=${params.submissionId}`
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: "Daybreakers <hello@daybreakcollaborative.com>",
-    to: walkerEmail,
+    to: process.env.WALKER_EMAIL!,
     subject: `New trajectory: ${params.name} — ${params.sector}`,
     html: walkerNotificationHtml({ ...params, approveUrl }),
   })
@@ -56,7 +65,7 @@ export async function sendWalkerFollowUp(params: {
   name: string
   sector: string
 }) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: "Walker <walker@daybreakcollaborative.com>",
     to: params.to,
     subject: `A note from Walker`,
@@ -119,7 +128,7 @@ function userEmailHtml(params: {
     <div class="footer">
       <div>Walker</div>
       <div>Daybreak Collaborative</div>
-      <div class="cta">The bridge won't build itself.</div>
+      <div class="cta">For the changemakers who aren’t waiting.</div>
     </div>
   </div>
 </body>
@@ -131,6 +140,8 @@ function walkerNotificationHtml(params: {
   email: string
   sector: string
   approveUrl: string
+  inlineAnswers?: { story?: string; comeToYouFor?: string; lostTrackOfTime?: string }
+  hasFullQuestionnaire?: boolean
   output: {
     power_statement: string
     plan_306090: string
@@ -164,6 +175,8 @@ function walkerNotificationHtml(params: {
 
     <a href="${params.approveUrl}" class="approve-btn">Send Follow-Up to ${params.name}</a>
     <div class="note">Clicking the button above sends your Day-2 follow-up email to ${params.name}. Review their output below first.</div>
+
+    ${inTheirOwnWordsHtml(params)}
 
     <div class="section-label">Power Statement</div>
     <div class="section-content">${params.output.power_statement}</div>
@@ -212,8 +225,41 @@ function walkerFollowUpHtml(params: { name: string; sector: string }): string {
       <div>Walker</div>
       <div style="font-size:13px; color:#5A5A5A; margin-top:4px;">Daybreak Collaborative</div>
     </div>
-    <div class="cta">The bridge won't build itself.</div>
+    <div class="cta">For the changemakers who aren’t waiting.</div>
   </div>
 </body>
 </html>`
+}
+
+// Renders the applicant's own answers (or notes a full questionnaire) in Walker's notification.
+function inTheirOwnWordsHtml(params: {
+  inlineAnswers?: { story?: string; comeToYouFor?: string; lostTrackOfTime?: string }
+  hasFullQuestionnaire?: boolean
+}): string {
+  if (params.hasFullQuestionnaire) {
+    return `
+    <div class="section-label">In Their Own Words</div>
+    <div class="section-content">Submitted their full Pre-Daybreak Questionnaire. See the submission record for the complete text.</div>`
+  }
+
+  const answers = params.inlineAnswers
+  const pairs: Array<[string, string | undefined]> = [
+    ["How they got here", answers?.story],
+    ["What people come to them for", answers?.comeToYouFor],
+    ["Last thing they lost track of time on", answers?.lostTrackOfTime],
+  ]
+  const filled = pairs.filter(([, v]) => v && v.trim())
+
+  if (filled.length === 0) return ""
+
+  const rows = filled
+    .map(
+      ([label, value]) =>
+        `<div style="margin-bottom:16px;"><div style="font-size:13px;color:#5A5A5A;margin-bottom:2px;">${label}</div><div class="section-content" style="margin-bottom:0;">${value}</div></div>`
+    )
+    .join("")
+
+  return `
+    <div class="section-label">In Their Own Words</div>
+    ${rows}`
 }

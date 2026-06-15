@@ -1,3 +1,16 @@
+export type TrajectoryInput = {
+  name: string
+  careerStage: string
+  sector: string
+  subSector: string
+  causeArea: string
+  inlineStory: string
+  inlineComeToYouFor: string
+  inlineLostTrackOfTime: string
+  questionnaireText: string
+  resumeText: string
+}
+
 export const SYSTEM_PROMPT = `You are the voice of Walker, founder of Daybreak Collaborative — a social impact consultancy.
 You are writing a personalized career trajectory for a student or early-career professional in the social impact space.
 
@@ -16,15 +29,32 @@ Tone rules you must follow without exception:
 You will be given the person's sector, sub-sector, cause area, career stage, answers to a reflective questionnaire,
 and their resume or professional background. Use all of it. The output should feel like it was written for this exact person.`
 
-export function buildUserPrompt(data: {
-  name: string
-  careerStage: string
-  sector: string
-  subSector: string
-  causeArea: string
-  questionnaireText: string
-  resumeText: string
-}): string {
+// The three Identity questions asked inline when no full questionnaire is provided.
+// Question text must stay verbatim with the Pre-Daybreak Questionnaire.
+const INLINE_QUESTIONS = {
+  inlineStory:
+    "Tell the story of how you got here. Not the version you'd put in a bio, the one with the part you usually skip.",
+  inlineComeToYouFor: "What do people come to you for?",
+  inlineLostTrackOfTime: "What's the last thing you worked on where you lost track of time?",
+} as const
+
+// One source of truth per submission: the full questionnaire supersedes the
+// inline answers because it contains those questions (and six more).
+export function formatQuestionnaireSection(data: TrajectoryInput): string {
+  if (data.questionnaireText?.trim()) {
+    return data.questionnaireText.trim()
+  }
+
+  const pairs = (Object.keys(INLINE_QUESTIONS) as Array<keyof typeof INLINE_QUESTIONS>)
+    .map((key) => ({ question: INLINE_QUESTIONS[key], answer: data[key]?.trim() }))
+    .filter((p) => p.answer)
+
+  if (pairs.length === 0) return "Not provided."
+
+  return pairs.map((p) => `Q: ${p.question}\nA: ${p.answer}`).join("\n\n")
+}
+
+export function buildUserPrompt(data: TrajectoryInput): string {
   return `Here is everything I know about the person you are writing for:
 
 Name: ${data.name}
@@ -34,37 +64,44 @@ Sub-Sector: ${data.subSector}
 Cause Area: ${data.causeArea}
 
 --- QUESTIONNAIRE ANSWERS ---
-${data.questionnaireText || "Not provided."}
+${formatQuestionnaireSection(data)}
 
 --- RESUME / PROFESSIONAL BACKGROUND ---
 ${data.resumeText || "Not provided."}
 
 ---
 
-Now generate a career trajectory for this person. Return a JSON object with exactly these five fields.
+Now generate a career trajectory for this person. Return a JSON object with exactly this structure.
 Do not include any text outside the JSON object. Do not use markdown code fences.
 
 {
   "power_statement": "A 2-3 sentence personal power statement. This is their positioning in the sector — who they are, what they bring, and where they are headed. It should feel like something they could say out loud at the start of a conversation that would make the other person lean in.",
 
-  "plan_306090": "A 30-60-90 day action plan written in three clearly labeled sections: Days 1-30, Days 31-60, Days 61-90. Each section has 3-4 specific, actionable items tailored to their sector and stage. Not vague goals — real moves they can make this week.",
+  "plan_306090": {
+    "days_1_30": "3-4 specific, actionable items for days 1-30, tailored to their sector and stage. Not vague goals — real moves they can make this week.",
+    "days_31_60": "3-4 specific, actionable items for days 31-60 that build on the first month.",
+    "days_61_90": "3-4 specific, actionable items for days 61-90 that turn momentum into trajectory."
+  },
 
-  "practitioners": "3-5 real practitioners or thought leaders in their specific sector worth following. For each: their name, their role or organization, and one sentence on why this person matters and what following them will actually give the reader.",
+  "practitioners": [
+    { "name": "Full name", "role": "Their role or organization", "why": "One sentence on why this person matters and what following them will actually give the reader." }
+  ],
 
-  "organizations": "5-7 real organizations working in their sector that they should know. For each: the organization name, a one-sentence description of what they do, and why it is relevant to where this person is headed.",
+  "organizations": [
+    { "name": "Organization name", "description": "One sentence on what they do.", "relevance": "Why it is relevant to where this person is headed." }
+  ],
 
-  "resources": "3-5 specific resources — books, podcasts, reports, or programs — that are genuinely useful for someone at their stage in their sector. For each: the title, format (book/podcast/report/program), and one sentence on what it gives the reader."
-}`
+  "resources": [
+    { "title": "Resource title", "format": "book, podcast, report, or program", "value": "One sentence on what it gives the reader." }
+  ]
 }
 
-export function buildTeachMePrompt(section: string, content: string): string {
-  return `A user is reading their career trajectory report and wants to learn more about one section.
+Before you write the practitioners and organizations sections, use the web_search tool to look up current leaders and active organizations in this person's exact sector. Search for their names to confirm they are real, still active, and working in this space. Training data goes stale — verify before you write.
 
-Section: ${section}
-Content they are looking at:
-${content}
-
-Write 2-3 paragraphs that expand on this section. Go deeper on the ideas, give more context on why it matters,
-and give the reader something they can act on or think about differently.
-Use the same voice: direct, warm, plain-spoken. No dashes. Write to this specific person, not a general audience.`
+Requirements:
+- ALL THREE plan_306090 sections are required for every person, no matter how early in their career they are. For someone with little or no experience, days 31-60 and 61-90 shift toward exploration, conversations, volunteering, and first reps — they never disappear. Never return fewer than three sections.
+- practitioners: 3-5 entries of real practitioners or thought leaders in their specific sector. Every name must be verified via web search before inclusion.
+- organizations: 5-7 entries of real organizations working in their sector. Every organization must be verified via web search before inclusion.
+- resources: 3-5 entries that are genuinely useful for someone at their stage in their sector.`
 }
+

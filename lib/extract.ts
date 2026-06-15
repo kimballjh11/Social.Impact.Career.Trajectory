@@ -2,12 +2,15 @@ import mammoth from "mammoth"
 
 export async function extractTextFromFile(buffer: Buffer, mimeType: string): Promise<string> {
   if (mimeType === "application/pdf") {
-    // Dynamically import pdf-parse to avoid issues with Next.js edge runtime
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pdfParse = (await import("pdf-parse")) as any
-    const parse = pdfParse.default ?? pdfParse
-    const result = await parse(buffer)
-    return result.text.trim()
+    // pdf-parse v2 exports a PDFParse class (no default function export like v1)
+    const { PDFParse } = await import("pdf-parse")
+    const parser = new PDFParse({ data: new Uint8Array(buffer) })
+    try {
+      const result = await parser.getText()
+      return result.text.trim()
+    } finally {
+      await parser.destroy?.()
+    }
   }
 
   if (
